@@ -1,5 +1,5 @@
 class ScheduleBlock {
-  final double start; // western 24h, e.g. 8.0 = 8:00 AM
+  final double start; // western 24h internally, e.g. 8.0 = 8:00 AM — used only for live "now" detection
   final double end;
   final String icon;
   final String label;
@@ -10,27 +10,21 @@ class ScheduleBlock {
     required this.label,
   });
 
-  String get westernTime {
-    String fmt(double h) {
-      int hh = h.floor();
-      int mm = ((h - hh) * 60).round();
-      final period = hh >= 12 ? 'PM' : 'AM';
-      int display = hh % 12;
-      if (display == 0) display = 12;
-      return '$display:${mm.toString().padLeft(2, '0')} $period';
-    }
-    return '${fmt(start)} – ${fmt(end)}';
+  String _period(int hh) {
+    if (hh >= 6 && hh < 12) return 'ጠዋት';
+    if (hh >= 12 && hh < 18) return 'ከሰዓት';
+    return 'ማታ';
   }
 
-  String get ethiopianTime {
+  String get time {
     String fmt(double h) {
       int hh = h.floor();
       int mm = ((h - hh) * 60).round();
       int ethHour = ((hh - 6) % 12 + 12) % 12;
       if (ethHour == 0) ethHour = 12;
-      return '$ethHour:${mm.toString().padLeft(2, '0')}';
+      return '$ethHour:${mm.toString().padLeft(2, '0')} ${_period(hh)}';
     }
-    return '${fmt(start)} – ${fmt(end)} (ኢት)';
+    return '${fmt(start)} – ${fmt(end)}';
   }
 }
 
@@ -74,7 +68,6 @@ const Map<String, List<ScheduleBlock>> kSchedules = {
 };
 
 String scheduleKeyForToday(int weekday, String chosenShift) {
-  // DateTime.weekday: 1=Mon ... 7=Sun
   if (weekday == 7) return 'sunday';
   if (weekday == 6) return 'saturday';
   return chosenShift;
