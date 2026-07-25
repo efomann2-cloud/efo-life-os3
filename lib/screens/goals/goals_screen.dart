@@ -78,7 +78,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 const SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(current.label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.parchment)),
-                  Text('${current.westernTime}  ·  ${current.ethiopianTime}', style: const TextStyle(fontSize: 11, color: AppColors.dim)),
+                  Text(current.time, style: const TextStyle(fontSize: 11, color: AppColors.dim)),
                 ]),
               ]),
               const SizedBox(height: 12),
@@ -121,7 +121,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
               child: Row(children: [
                 SizedBox(
                   width: 74,
-                  child: Text('${b.westernTime}\n${b.ethiopianTime}', style: const TextStyle(fontSize: 10, color: AppColors.goldLight, height: 1.3)),
+                  child: Text(b.time, style: const TextStyle(fontSize: 10, color: AppColors.goldLight, height: 1.3)),
                 ),
                 const SizedBox(width: 8),
                 Text(b.icon, style: const TextStyle(fontSize: 17)),
