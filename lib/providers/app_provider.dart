@@ -52,4 +52,16 @@ class AppProvider extends ChangeNotifier {
     list[index] = value;
     setValue(key, list);
   }
+
+  List<Map<String, dynamic>> getMapList(String key) {
+    final v = _state[key];
+    if (v is List) {
+      return v.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
+
+  void setMapList(String key, List<Map<String, dynamic>> list) {
+    setValue(key, list);
+  }
 }
