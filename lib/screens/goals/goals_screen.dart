@@ -5,8 +5,15 @@ import '../../theme/app_theme.dart';
 import '../../providers/app_provider.dart';
 import '../../data/schedule_data.dart';
 import '../../data/study_data.dart';
+import '../../data/gk_data.dart';
 
 String _dateKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
+
+String _weekStartKey(DateTime now) {
+  final diff = now.weekday % 7; // Sunday=0 days since Sunday
+  final sunday = now.subtract(Duration(days: diff));
+  return '${sunday.year}-${sunday.month}-${sunday.day}';
+}
 
 bool _blockContainsNow(ScheduleBlock b, double nowFloat) {
   double adjustedNow = nowFloat;
@@ -31,10 +38,12 @@ class GoalsScreen extends StatefulWidget {
 class _GoalsScreenState extends State<GoalsScreen> {
   String shift = 'morning';
   Timer? _ticker;
+  late int selectedGkDay;
 
   @override
   void initState() {
     super.initState();
+    selectedGkDay = DateTime.now().weekday % 7;
     _ticker = Timer.periodic(const Duration(seconds: 30), (_) => setState(() {}));
   }
 
@@ -60,6 +69,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
       orElse: () => blocks.first,
     );
     final pct = _blockProgress(current, nowFloat);
+
+    final weekKey = 'gk_${_weekStartKey(now)}';
+    final gkDone = app.getBoolList(weekKey, 7);
+    final gkItem = kGkPlan[selectedGkDay];
+    final todayIndex = now.weekday % 7;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -167,8 +181,84 @@ class _GoalsScreenState extends State<GoalsScreen> {
         const SizedBox(height: 8),
         ..._buildChecklist(context, app, 'nightstudy_${_dateKey(now)}', kNightStudyTasks, '🌙'),
 
+        const SizedBox(height: 24),
+        const Text('💡 GENERAL KNOWLEDGE — THIS WEEK', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+        const SizedBox(height: 10),
+
+        SizedBox(
+          height: 46,
+          child: Row(
+            children: List.generate(7, (i) {
+              final isSelected = i == selectedGkDay;
+              final isToday = i == todayIndex;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => selectedGkDay = i),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.gold : AppColors.inkCard,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: isSelected ? AppColors.gold : AppColors.inkLine),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      kDayShort[i],
+                      style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600,
+                        color: isSelected ? AppColors.inkDeep : (isToday ? AppColors.sage : AppColors.dim),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.inkCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.inkLine),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: Text('${gkItem.icon} ${gkItem.topic}', style: const TextStyle(fontSize: 11, color: AppColors.gold, fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(height: 10),
+              Text(gkItem.sub, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.parchment)),
+              const SizedBox(height: 8),
+              Text(gkItem.task, style: const TextStyle(fontSize: 13, color: AppColors.parchmentDim, height: 1.4)),
+              const SizedBox(height: 14),
+              GestureDetector(
+                onTap: () => app.setBoolListAt(weekKey, 7, selectedGkDay, !gkDone[selectedGkDay]),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  decoration: BoxDecoration(
+                    color: gkDone[selectedGkDay] ? AppColors.sage.withOpacity(0.15) : Colors.white.withOpacity(0.03),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: gkDone[selectedGkDay] ? AppColors.sage.withOpacity(0.5) : AppColors.inkLine),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    gkDone[selectedGkDay] ? '✓ Completed' : 'Mark as done',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: gkDone[selectedGkDay] ? AppColors.sage : AppColors.goldLight),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
         const SizedBox(height: 20),
-        const Text('Bible · General Knowledge · Summer Plan — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
+        const Text('Bible · Summer Plan · Quick Capture — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
       ],
     );
   }
