@@ -7,6 +7,7 @@ import '../../data/schedule_data.dart';
 import '../../data/study_data.dart';
 import '../../data/gk_data.dart';
 import '../../data/bible_data.dart';
+import 'end_of_day_review.dart';
 
 String _dateKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
 
@@ -44,6 +45,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   final TextEditingController _reflectionController = TextEditingController();
   bool _reflectionInit = false;
   final TextEditingController _summerController = TextEditingController();
+  final TextEditingController _captureController = TextEditingController();
 
   @override
   void initState() {
@@ -59,16 +61,22 @@ class _GoalsScreenState extends State<GoalsScreen> {
     _ticker?.cancel();
     _reflectionController.dispose();
     _summerController.dispose();
+    _captureController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
+    final app = context.watch<AppProvider>();
+
+    final yesterday = now.subtract(const Duration(days: 1));
+    final yesterdayKey = _dateKey(yesterday);
+    final lastReviewed = app.getString('last_reviewed_date');
+
     final key = scheduleKeyForToday(now.weekday, shift);
     final blocks = kSchedules[key]!;
     final isWeekday = now.weekday >= 1 && now.weekday <= 5;
-    final app = context.watch<AppProvider>();
     final stateKey = 'schedule_${_dateKey(now)}';
     final done = app.getBoolList(stateKey, blocks.length);
 
@@ -95,10 +103,36 @@ class _GoalsScreenState extends State<GoalsScreen> {
     }
 
     final summerGoals = app.getMapList('summer_plan');
+    final captures = app.getMapList('quick_capture');
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (lastReviewed != yesterdayKey)
+          GestureDetector(
+            onTap: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => EndOfDayReview(dateKey: yesterdayKey, dateLabel: _weekdayName(yesterday.weekday)),
+            ),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.gold.withOpacity(0.4)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.today_outlined, color: AppColors.gold, size: 18),
+                const SizedBox(width: 10),
+                const Expanded(child: Text('Review yesterday\u2019s goals', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.parchment))),
+                const Icon(Icons.chevron_right, color: AppColors.gold, size: 18),
+              ]),
+            ),
+          ),
+
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -266,7 +300,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
         const SizedBox(height: 24),
         const Text('🌞 SUMMER PLAN (Your Own Goals)', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
         const SizedBox(height: 10),
-
         Row(
           children: [
             Expanded(
@@ -281,12 +314,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.inkLine)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
-                onSubmitted: (_) => _addSummerGoal(app, summerGoals),
+                onSubmitted: (_) => _addToList(app, 'summer_plan', summerGoals, _summerController),
               ),
             ),
             const SizedBox(width: 8),
             GestureDetector(
-              onTap: () => _addSummerGoal(app, summerGoals),
+              onTap: () => _addToList(app, 'summer_plan', summerGoals, _summerController),
               child: Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.gold.withOpacity(0.4))),
@@ -297,72 +330,116 @@ class _GoalsScreenState extends State<GoalsScreen> {
           ],
         ),
         const SizedBox(height: 10),
-
         if (summerGoals.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 10),
             child: Text('No summer goals yet — add your first one above.', style: TextStyle(fontSize: 12, color: AppColors.dim)),
           ),
+        ..._buildEditableList(app, 'summer_plan', summerGoals, showCheck: true),
 
-        ...summerGoals.asMap().entries.map((entry) {
-          final i = entry.key;
-          final goal = entry.value;
-          final isDone = goal['done'] == true;
-          return Container(
-            margin: const EdgeInsets.only(bottom: 9),
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-            decoration: BoxDecoration(
-              color: isDone ? AppColors.sage.withOpacity(0.12) : AppColors.inkCard,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: isDone ? AppColors.sage.withOpacity(0.5) : AppColors.inkLine),
-            ),
-            child: Row(children: [
-              GestureDetector(
-                onTap: () {
-                  final updated = List<Map<String, dynamic>>.from(summerGoals);
-                  updated[i] = {...updated[i], 'done': !isDone};
-                  app.setMapList('summer_plan', updated);
-                },
-                child: Container(
-                  width: 22, height: 22,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDone ? AppColors.sage : Colors.transparent,
-                    border: Border.all(color: isDone ? AppColors.sage : AppColors.gold, width: 1.5),
-                  ),
-                  child: isDone ? const Icon(Icons.check, size: 14, color: AppColors.inkDeep) : null,
+        const SizedBox(height: 24),
+        const Text('💭 QUICK CAPTURE (Ideas)', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _captureController,
+                style: const TextStyle(color: AppColors.parchment, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'A business or outreach idea…',
+                  hintStyle: const TextStyle(color: AppColors.dim, fontSize: 12),
+                  filled: true,
+                  fillColor: AppColors.inkCard,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.inkLine)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
+                onSubmitted: (_) => _addToList(app, 'quick_capture', captures, _captureController),
               ),
-              const SizedBox(width: 10),
-              Expanded(child: Text(goal['text'] ?? '', style: TextStyle(
-                fontSize: 13.5,
-                color: isDone ? AppColors.parchmentDim : AppColors.parchment,
-                decoration: isDone ? TextDecoration.lineThrough : null,
-              ))),
-              GestureDetector(
-                onTap: () {
-                  final updated = List<Map<String, dynamic>>.from(summerGoals)..removeAt(i);
-                  app.setMapList('summer_plan', updated);
-                },
-                child: const Icon(Icons.close, size: 16, color: AppColors.dim),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => _addToList(app, 'quick_capture', captures, _captureController),
+              child: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.gold.withOpacity(0.4))),
+                alignment: Alignment.center,
+                child: const Icon(Icons.add, color: AppColors.gold),
               ),
-            ]),
-          );
-        }),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (captures.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Text('No ideas captured yet — jot one down before you forget it.', style: TextStyle(fontSize: 12, color: AppColors.dim)),
+          ),
+        ..._buildEditableList(app, 'quick_capture', captures, showCheck: false),
 
-        const SizedBox(height: 20),
-        const Text('Quick Capture · End-of-Day Review — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
+        const SizedBox(height: 24),
       ],
     );
   }
 
-  void _addSummerGoal(AppProvider app, List<Map<String, dynamic>> current) {
-    final text = _summerController.text.trim();
+  void _addToList(AppProvider app, String key, List<Map<String, dynamic>> current, TextEditingController ctrl) {
+    final text = ctrl.text.trim();
     if (text.isEmpty) return;
     final updated = List<Map<String, dynamic>>.from(current)
       ..add({'text': text, 'done': false, 'id': DateTime.now().millisecondsSinceEpoch});
-    app.setMapList('summer_plan', updated);
-    _summerController.clear();
+    app.setMapList(key, updated);
+    ctrl.clear();
+  }
+
+  List<Widget> _buildEditableList(AppProvider app, String key, List<Map<String, dynamic>> items, {required bool showCheck}) {
+    return items.asMap().entries.map((entry) {
+      final i = entry.key;
+      final item = entry.value;
+      final isDone = item['done'] == true;
+      return Container(
+        margin: const EdgeInsets.only(bottom: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+        decoration: BoxDecoration(
+          color: (showCheck && isDone) ? AppColors.sage.withOpacity(0.12) : AppColors.inkCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: (showCheck && isDone) ? AppColors.sage.withOpacity(0.5) : AppColors.inkLine),
+        ),
+        child: Row(children: [
+          if (showCheck)
+            GestureDetector(
+              onTap: () {
+                final updated = List<Map<String, dynamic>>.from(items);
+                updated[i] = {...updated[i], 'done': !isDone};
+                app.setMapList(key, updated);
+              },
+              child: Container(
+                width: 22, height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDone ? AppColors.sage : Colors.transparent,
+                  border: Border.all(color: isDone ? AppColors.sage : AppColors.gold, width: 1.5),
+                ),
+                child: isDone ? const Icon(Icons.check, size: 14, color: AppColors.inkDeep) : null,
+              ),
+            )
+          else
+            const Text('💭', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 10),
+          Expanded(child: Text(item['text'] ?? '', style: TextStyle(
+            fontSize: 13.5,
+            color: (showCheck && isDone) ? AppColors.parchmentDim : AppColors.parchment,
+            decoration: (showCheck && isDone) ? TextDecoration.lineThrough : null,
+          ))),
+          GestureDetector(
+            onTap: () {
+              final updated = List<Map<String, dynamic>>.from(items)..removeAt(i);
+              app.setMapList(key, updated);
+            },
+            child: const Icon(Icons.close, size: 16, color: AppColors.dim),
+          ),
+        ]),
+      );
+    }).toList();
   }
 
   Widget _shiftBtn(String value, String label) {
