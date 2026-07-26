@@ -6,11 +6,12 @@ import '../../providers/app_provider.dart';
 import '../../data/schedule_data.dart';
 import '../../data/study_data.dart';
 import '../../data/gk_data.dart';
+import '../../data/bible_data.dart';
 
 String _dateKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
 
 String _weekStartKey(DateTime now) {
-  final diff = now.weekday % 7; // Sunday=0 days since Sunday
+  final diff = now.weekday % 7;
   final sunday = now.subtract(Duration(days: diff));
   return '${sunday.year}-${sunday.month}-${sunday.day}';
 }
@@ -39,17 +40,23 @@ class _GoalsScreenState extends State<GoalsScreen> {
   String shift = 'morning';
   Timer? _ticker;
   late int selectedGkDay;
+  late int selectedBibleDay;
+  final TextEditingController _reflectionController = TextEditingController();
+  bool _reflectionInit = false;
 
   @override
   void initState() {
     super.initState();
-    selectedGkDay = DateTime.now().weekday % 7;
+    final today = DateTime.now().weekday % 7;
+    selectedGkDay = today;
+    selectedBibleDay = today;
     _ticker = Timer.periodic(const Duration(seconds: 30), (_) => setState(() {}));
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
+    _reflectionController.dispose();
     super.dispose();
   }
 
@@ -74,6 +81,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final gkDone = app.getBoolList(weekKey, 7);
     final gkItem = kGkPlan[selectedGkDay];
     final todayIndex = now.weekday % 7;
+
+    final bibleWeekKey = 'bible_${_weekStartKey(now)}';
+    final bibleDone = app.getBoolList(bibleWeekKey, 7);
+    final bibleItem = kBiblePlan[selectedBibleDay];
+
+    final reflectionKey = 'reflection_${_dateKey(now)}';
+    if (!_reflectionInit) {
+      _reflectionController.text = app.getString(reflectionKey);
+      _reflectionInit = true;
+    }
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -184,81 +201,66 @@ class _GoalsScreenState extends State<GoalsScreen> {
         const SizedBox(height: 24),
         const Text('💡 GENERAL KNOWLEDGE — THIS WEEK', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
         const SizedBox(height: 10),
-
-        SizedBox(
-          height: 46,
-          child: Row(
-            children: List.generate(7, (i) {
-              final isSelected = i == selectedGkDay;
-              final isToday = i == todayIndex;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => selectedGkDay = i),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.gold : AppColors.inkCard,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: isSelected ? AppColors.gold : AppColors.inkLine),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      kDayShort[i],
-                      style: TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w600,
-                        color: isSelected ? AppColors.inkDeep : (isToday ? AppColors.sage : AppColors.dim),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
+        _buildDayStrip(selectedGkDay, todayIndex, (i) => setState(() => selectedGkDay = i)),
         const SizedBox(height: 12),
+        _buildPlanCard(
+          tag: '${gkItem.icon} ${gkItem.topic}',
+          title: gkItem.sub,
+          fieldLabel: 'Task',
+          fieldValue: gkItem.task,
+          isDone: gkDone[selectedGkDay],
+          doneLabel: 'Mark as done',
+          onToggle: () => app.setBoolListAt(weekKey, 7, selectedGkDay, !gkDone[selectedGkDay]),
+        ),
 
+        const SizedBox(height: 24),
+        const Text('✝ BIBLE — THIS WEEK', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+        const SizedBox(height: 10),
+        _buildDayStrip(selectedBibleDay, todayIndex, (i) => setState(() => selectedBibleDay = i)),
+        const SizedBox(height: 12),
+        _buildPlanCard(
+          tag: '📖 ${bibleItem.book}',
+          title: bibleItem.read,
+          fieldLabel: 'Focus',
+          fieldValue: bibleItem.focus,
+          isDone: bibleDone[selectedBibleDay],
+          doneLabel: 'Mark as read',
+          onToggle: () => app.setBoolListAt(bibleWeekKey, 7, selectedBibleDay, !bibleDone[selectedBibleDay]),
+        ),
+
+        const SizedBox(height: 16),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.inkCard,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppColors.inkLine),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text('${gkItem.icon} ${gkItem.topic}', style: const TextStyle(fontSize: 11, color: AppColors.gold, fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(height: 10),
-              Text(gkItem.sub, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.parchment)),
+              const Text('📝 Today\u2019s Reflection', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.goldLight)),
               const SizedBox(height: 8),
-              Text(gkItem.task, style: const TextStyle(fontSize: 13, color: AppColors.parchmentDim, height: 1.4)),
-              const SizedBox(height: 14),
-              GestureDetector(
-                onTap: () => app.setBoolListAt(weekKey, 7, selectedGkDay, !gkDone[selectedGkDay]),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 11),
-                  decoration: BoxDecoration(
-                    color: gkDone[selectedGkDay] ? AppColors.sage.withOpacity(0.15) : Colors.white.withOpacity(0.03),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: gkDone[selectedGkDay] ? AppColors.sage.withOpacity(0.5) : AppColors.inkLine),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    gkDone[selectedGkDay] ? '✓ Completed' : 'Mark as done',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: gkDone[selectedGkDay] ? AppColors.sage : AppColors.goldLight),
-                  ),
+              TextField(
+                controller: _reflectionController,
+                maxLines: 3,
+                style: const TextStyle(color: AppColors.parchment, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'What stood out to you today?',
+                  hintStyle: const TextStyle(color: AppColors.dim, fontSize: 12),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.03),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.inkLine)),
+                  contentPadding: const EdgeInsets.all(10),
                 ),
+                onChanged: (v) => app.setValue(reflectionKey, v),
               ),
             ],
           ),
         ),
 
         const SizedBox(height: 20),
-        const Text('Bible · Summer Plan · Quick Capture — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
+        const Text('Summer Plan · Quick Capture · End-of-Day Review — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
       ],
     );
   }
@@ -282,6 +284,92 @@ class _GoalsScreenState extends State<GoalsScreen> {
     const names = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     return names[w - 1];
   }
+}
+
+Widget _buildDayStrip(int selected, int today, void Function(int) onTap) {
+  const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return SizedBox(
+    height: 44,
+    child: Row(
+      children: List.generate(7, (i) {
+        final isSelected = i == selected;
+        final isToday = i == today;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onTap(i),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.gold : AppColors.inkCard,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isSelected ? AppColors.gold : AppColors.inkLine),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                labels[i],
+                style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w600,
+                  color: isSelected ? AppColors.inkDeep : (isToday ? AppColors.sage : AppColors.dim),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    ),
+  );
+}
+
+Widget _buildPlanCard({
+  required String tag,
+  required String title,
+  required String fieldLabel,
+  required String fieldValue,
+  required bool isDone,
+  required String doneLabel,
+  required VoidCallback onToggle,
+}) {
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: AppColors.inkCard,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.inkLine),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+          decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+          child: Text(tag, style: const TextStyle(fontSize: 11, color: AppColors.gold, fontWeight: FontWeight.w600)),
+        ),
+        const SizedBox(height: 10),
+        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.parchment)),
+        const SizedBox(height: 8),
+        Text(fieldLabel, style: const TextStyle(fontSize: 10, color: AppColors.dim, letterSpacing: 0.6)),
+        const SizedBox(height: 2),
+        Text(fieldValue, style: const TextStyle(fontSize: 13, color: AppColors.parchmentDim, height: 1.4)),
+        const SizedBox(height: 14),
+        GestureDetector(
+          onTap: onToggle,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            decoration: BoxDecoration(
+              color: isDone ? AppColors.sage.withOpacity(0.15) : Colors.white.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: isDone ? AppColors.sage.withOpacity(0.5) : AppColors.inkLine),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              isDone ? '✓ Completed' : doneLabel,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDone ? AppColors.sage : AppColors.goldLight),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 List<Widget> _buildChecklist(BuildContext context, AppProvider app, String stateKey, List<String> tasks, String icon) {
