@@ -15,6 +15,8 @@ class ProgressScreen extends StatelessWidget {
     final gkWeek = weeklyCount(app, 'gk', now);
     final bibleWeek = weeklyCount(app, 'bible', now);
     final heatmap = computeWeekHeatmap(app);
+    final streak = currentStreak(app);
+    final checkedIn = isCheckedInToday(app);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -45,7 +47,31 @@ class ProgressScreen extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 24),
+
+        GestureDetector(
+          onTap: checkedIn ? null : () => performCheckIn(context.read<AppProvider>()),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: checkedIn ? AppColors.sage.withOpacity(0.12) : AppColors.gold.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: checkedIn ? AppColors.sage.withOpacity(0.4) : AppColors.gold.withOpacity(0.4)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(checkedIn ? '✓' : '🔥', style: const TextStyle(fontSize: 16)),
+                const SizedBox(width: 8),
+                Text(
+                  checkedIn ? 'Checked in · $streak day streak' : 'Check in today',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: checkedIn ? AppColors.sage : AppColors.goldLight),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 22),
 
         const Text('LAST 7 DAYS', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
         const SizedBox(height: 10),
@@ -104,7 +130,7 @@ class ProgressScreen extends StatelessWidget {
         ),
 
         const SizedBox(height: 20),
-        const Text('Streak · Balance Check — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
+        const Text('Balance Check — ቀጣይ sub-step ላይ ይጨመራል', style: TextStyle(fontSize: 11, color: AppColors.dim)),
       ],
     );
   }
