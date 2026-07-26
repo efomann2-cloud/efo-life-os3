@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/app_provider.dart';
 import '../../data/schedule_data.dart';
+import '../../data/study_data.dart';
 
 String _dateKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
 
@@ -156,8 +157,18 @@ class _GoalsScreenState extends State<GoalsScreen> {
           );
         }),
 
+        const SizedBox(height: 24),
+        const Text('☀ DAY STUDY', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+        const SizedBox(height: 8),
+        ..._buildChecklist(context, app, 'daystudy_${_dateKey(now)}', kDayStudyTasks, '☀'),
+
         const SizedBox(height: 20),
-        const Text('Study · Bible · General Knowledge · Summer Plan — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
+        const Text('🌙 NIGHT STUDY', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+        const SizedBox(height: 8),
+        ..._buildChecklist(context, app, 'nightstudy_${_dateKey(now)}', kNightStudyTasks, '🌙'),
+
+        const SizedBox(height: 20),
+        const Text('Bible · General Knowledge · Summer Plan — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
       ],
     );
   }
@@ -181,4 +192,41 @@ class _GoalsScreenState extends State<GoalsScreen> {
     const names = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     return names[w - 1];
   }
+}
+
+List<Widget> _buildChecklist(BuildContext context, AppProvider app, String stateKey, List<String> tasks, String icon) {
+  final done = app.getBoolList(stateKey, tasks.length);
+  return List.generate(tasks.length, (i) {
+    final isDone = done[i];
+    return GestureDetector(
+      onTap: () => app.setBoolListAt(stateKey, tasks.length, i, !isDone),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 9),
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: isDone ? AppColors.sage.withOpacity(0.12) : AppColors.inkCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: isDone ? AppColors.sage.withOpacity(0.5) : AppColors.inkLine),
+        ),
+        child: Row(children: [
+          Text(icon, style: const TextStyle(fontSize: 15)),
+          const SizedBox(width: 10),
+          Expanded(child: Text(tasks[i], style: TextStyle(
+            fontSize: 13.5, fontWeight: FontWeight.w500,
+            color: isDone ? AppColors.parchmentDim : AppColors.parchment,
+            decoration: isDone ? TextDecoration.lineThrough : null,
+          ))),
+          Container(
+            width: 22, height: 22,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDone ? AppColors.sage : Colors.transparent,
+              border: Border.all(color: isDone ? AppColors.sage : AppColors.gold, width: 1.5),
+            ),
+            child: isDone ? const Icon(Icons.check, size: 14, color: AppColors.inkDeep) : null,
+          ),
+        ]),
+      ),
+    );
+  });
 }
