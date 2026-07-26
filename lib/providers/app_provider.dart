@@ -26,6 +26,12 @@ class AppProvider extends ChangeNotifier {
     return fallback;
   }
 
+  int getInt(String key, {int fallback = 0}) {
+    final v = _state[key];
+    if (v is int) return v;
+    return fallback;
+  }
+
   dynamic get(String key) => _state[key];
 
   void setValue(String key, dynamic value) {
