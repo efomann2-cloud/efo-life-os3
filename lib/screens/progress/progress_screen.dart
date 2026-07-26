@@ -14,6 +14,7 @@ class ProgressScreen extends StatelessWidget {
     final stats = computeTodayStats(app, now);
     final gkWeek = weeklyCount(app, 'gk', now);
     final bibleWeek = weeklyCount(app, 'bible', now);
+    final heatmap = computeWeekHeatmap(app);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -46,6 +47,52 @@ class ProgressScreen extends StatelessWidget {
         ),
         const SizedBox(height: 28),
 
+        const Text('LAST 7 DAYS', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.inkCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.inkLine),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: heatmap.map((d) {
+              final isToday = _isSameDay(d.date, now);
+              Color cellColor;
+              if (d.excused) {
+                cellColor = AppColors.sage.withOpacity(0.35);
+              } else if (d.pct >= 0.9) {
+                cellColor = AppColors.sage;
+              } else if (d.pct > 0) {
+                cellColor = AppColors.gold.withOpacity(0.35 + d.pct * 0.5);
+              } else {
+                cellColor = Colors.white.withOpacity(0.06);
+              }
+              return Column(
+                children: [
+                  Container(
+                    width: 30, height: 30,
+                    decoration: BoxDecoration(
+                      color: cellColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: isToday ? Border.all(color: AppColors.gold, width: 1.5) : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: d.excused
+                        ? const Icon(Icons.beach_access, size: 13, color: AppColors.inkDeep)
+                        : (d.pct >= 0.9 ? const Icon(Icons.check, size: 13, color: AppColors.inkDeep) : null),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(_shortDay(d.date.weekday), style: const TextStyle(fontSize: 10, color: AppColors.dim)),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+
+        const SizedBox(height: 22),
         const Text('THIS WEEK', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
         const SizedBox(height: 10),
         Row(
@@ -57,9 +104,16 @@ class ProgressScreen extends StatelessWidget {
         ),
 
         const SizedBox(height: 20),
-        const Text('Heatmap · Streak · Balance Check — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
+        const Text('Streak · Balance Check — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
       ],
     );
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+
+  String _shortDay(int weekday) {
+    const names = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    return names[weekday - 1];
   }
 
   Widget _statCard(String label, String value) {
