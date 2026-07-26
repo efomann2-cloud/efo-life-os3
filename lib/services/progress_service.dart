@@ -56,3 +56,39 @@ int weeklyCount(AppProvider app, String prefix, DateTime now) {
   final weekKey = weekStartKeyFor(now);
   return app.getBoolList('${prefix}_$weekKey', 7).where((e) => e).length;
 }
+
+/// Attempts to check in for today. Returns true if a new check-in happened.
+bool performCheckIn(AppProvider app) {
+  final now = DateTime.now();
+  final todayKey = dateKeyFor(now);
+  final lastDate = app.getString('streak_last_date');
+
+  if (lastDate == todayKey) return false; // already checked in today
+
+  final yesterday = dateKeyFor(now.subtract(const Duration(days: 1)));
+  final dayBefore = dateKeyFor(now.subtract(const Duration(days: 2)));
+
+  int streak = app.getInt('streak_count', fallback: 0);
+  bool graceUsed = app.getBool('streak_grace_used');
+
+  if (lastDate == yesterday) {
+    streak += 1;
+  } else if (lastDate == dayBefore && !graceUsed) {
+    streak += 1;
+    graceUsed = true;
+  } else {
+    streak = 1;
+    graceUsed = false;
+  }
+
+  app.setValue('streak_count', streak);
+  app.setValue('streak_last_date', todayKey);
+  app.setValue('streak_grace_used', graceUsed);
+  return true;
+}
+
+bool isCheckedInToday(AppProvider app) {
+  return app.getString('streak_last_date') == dateKeyFor(DateTime.now());
+}
+
+int currentStreak(AppProvider app) => app.getInt('streak_count', fallback: 0);
