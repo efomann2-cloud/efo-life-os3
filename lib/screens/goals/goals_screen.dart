@@ -40,6 +40,7 @@ class GoalsScreen extends StatefulWidget {
 class _GoalsScreenState extends State<GoalsScreen> {
   String shift = 'morning';
   Timer? _ticker;
+  bool _shiftInit = false;
   late int selectedGkDay;
   late int selectedBibleDay;
   final TextEditingController _reflectionController = TextEditingController();
@@ -69,6 +70,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final app = context.watch<AppProvider>();
+    if (!_shiftInit) {
+      shift = app.getString('shift_pref', fallback: 'morning');
+      _shiftInit = true;
+    }
 
     final yesterday = now.subtract(const Duration(days: 1));
     final yesterdayKey = _dateKey(yesterday);
@@ -177,8 +182,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(color: AppColors.inkCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.inkLine)),
             child: Row(children: [
-              _shiftBtn('morning', 'Morning Shift'),
-              _shiftBtn('afternoon', 'Afternoon Shift'),
+              _shiftBtn(context, 'morning', 'Morning Shift'),
+              _shiftBtn(context, 'afternoon', 'Afternoon Shift'),
             ]),
           ),
         const SizedBox(height: 16),
@@ -442,11 +447,14 @@ class _GoalsScreenState extends State<GoalsScreen> {
     }).toList();
   }
 
-  Widget _shiftBtn(String value, String label) {
+  Widget _shiftBtn(BuildContext context, String value, String label) {
     final active = shift == value;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => shift = value),
+        onTap: () {
+          setState(() => shift = value);
+          context.read<AppProvider>().setValue('shift_pref', value);
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(color: active ? AppColors.gold : Colors.transparent, borderRadius: BorderRadius.circular(9)),
