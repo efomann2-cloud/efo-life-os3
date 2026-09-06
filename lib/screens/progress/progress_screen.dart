@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/app_provider.dart';
 import '../../services/progress_service.dart';
+import '../../utils/date_utils.dart';
 
 class ProgressScreen extends StatelessWidget {
   const ProgressScreen({super.key});
@@ -17,10 +18,23 @@ class ProgressScreen extends StatelessWidget {
     final heatmap = computeWeekHeatmap(app);
     final streak = currentStreak(app);
     final checkedIn = isCheckedInToday(app);
+    final dayNumber = daysSinceStart(app);
+
+    final balanceKey = 'balance_${weekStartKeyFor(now)}';
+    final balanceValue = app.getString(balanceKey);
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            child: Text('Day $dayNumber of your journey', style: const TextStyle(fontSize: 12, color: AppColors.goldLight, fontWeight: FontWeight.w600)),
+          ),
+        ),
+        const SizedBox(height: 16),
+
         Center(
           child: SizedBox(
             width: 180, height: 180,
@@ -129,9 +143,53 @@ class ProgressScreen extends StatelessWidget {
           ],
         ),
 
-        const SizedBox(height: 20),
-        const Text('Balance Check — ቀጣይ sub-step ላይ ይጨመራል', style: TextStyle(fontSize: 11, color: AppColors.dim)),
+        const SizedBox(height: 22),
+        const Text('🧘 HOW ARE YOU FEELING THIS WEEK?', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _balanceBtn(context, balanceKey, balanceValue, 'good', '😊', 'Great'),
+            const SizedBox(width: 8),
+            _balanceBtn(context, balanceKey, balanceValue, 'balanced', '🙂', 'Balanced'),
+            const SizedBox(width: 8),
+            _balanceBtn(context, balanceKey, balanceValue, 'tired', '😮\u200d💨', 'Need Rest'),
+          ],
+        ),
+        if (balanceValue == 'tired')
+          const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: Text(
+              'It\u2019s okay to slow down. Consider lightening tomorrow\u2019s load or resting a little more.',
+              style: TextStyle(fontSize: 12, color: AppColors.parchmentDim, height: 1.4),
+            ),
+          ),
+
+        const SizedBox(height: 24),
       ],
+    );
+  }
+
+  Widget _balanceBtn(BuildContext context, String key, String current, String value, String emoji, String label) {
+    final isSelected = current == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => context.read<AppProvider>().setValue(key, value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.gold.withOpacity(0.15) : AppColors.inkCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: isSelected ? AppColors.gold : AppColors.inkLine),
+          ),
+          child: Column(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 18)),
+              const SizedBox(height: 4),
+              Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isSelected ? AppColors.goldLight : AppColors.dim)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
