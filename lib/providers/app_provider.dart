@@ -10,6 +10,11 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> load() async {
     _state = await _storage.loadState();
+    if (_state['journey_start_date'] == null) {
+      final now = DateTime.now();
+      _state['journey_start_date'] = '${now.year}-${now.month}-${now.day}';
+      await _storage.saveState(_state);
+    }
     _loaded = true;
     notifyListeners();
   }
