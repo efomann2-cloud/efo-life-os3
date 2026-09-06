@@ -92,3 +92,12 @@ bool isCheckedInToday(AppProvider app) {
 }
 
 int currentStreak(AppProvider app) => app.getInt('streak_count', fallback: 0);
+int daysSinceStart(AppProvider app) {
+  final startStr = app.getString('journey_start_date');
+  if (startStr.isEmpty) return 1;
+  final parts = startStr.split('-').map(int.parse).toList();
+  final start = DateTime(parts[0], parts[1], parts[2]);
+  final now = DateTime.now();
+  final diff = DateTime(now.year, now.month, now.day).difference(DateTime(start.year, start.month, start.day)).inDays;
+  return diff + 1;
+}
