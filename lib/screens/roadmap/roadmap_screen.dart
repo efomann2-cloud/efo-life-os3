@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/app_provider.dart';
 import '../../data/pillar_data.dart';
 import '../../services/roadmap_service.dart';
+import '../../widgets/constellation_view.dart';
 
 class RoadmapScreen extends StatelessWidget {
   const RoadmapScreen({super.key});
@@ -12,6 +13,18 @@ class RoadmapScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
     final now = DateTime.now();
+
+    final unlockedMap = kPillars.map((pillar) {
+      return List.generate(pillar.stages.length, (i) {
+        final reached = stageTimeReached(app, i, now);
+        final perf = reached ? stagePerformance(app, pillar.category, i, now) : 0.0;
+        return reached && perf >= 0.75;
+      });
+    }).toList();
+
+    final reachedMap = kPillars.map((pillar) {
+      return List.generate(pillar.stages.length, (i) => stageTimeReached(app, i, now));
+    }).toList();
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -30,6 +43,9 @@ class RoadmapScreen extends StatelessWidget {
             style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: AppColors.parchmentDim),
           ),
         ),
+
+        ConstellationView(unlockedMap: unlockedMap, reachedMap: reachedMap),
+        const SizedBox(height: 18),
 
         ...kPillars.map((pillar) {
           final color = Color(pillar.color);
