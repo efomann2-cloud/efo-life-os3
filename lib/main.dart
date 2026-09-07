@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'providers/app_provider.dart';
 import 'screens/home_shell.dart';
+import 'screens/lock_screen.dart';
 
 void main() {
   runApp(const EfoLifeOsApp());
@@ -24,10 +25,32 @@ class EfoLifeOsApp extends StatelessWidget {
             if (!app.isLoaded) {
               return const Scaffold(body: Center(child: CircularProgressIndicator()));
             }
-            return const HomeShell();
+            return const AppLockGate();
           },
         ),
       ),
     );
+  }
+}
+
+class AppLockGate extends StatefulWidget {
+  const AppLockGate({super.key});
+  @override
+  State<AppLockGate> createState() => _AppLockGateState();
+}
+
+class _AppLockGateState extends State<AppLockGate> {
+  bool unlocked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final app = context.watch<AppProvider>();
+    final pin = app.getString('app_pin');
+    final needsLock = pin.length == 4 && !unlocked;
+
+    if (needsLock) {
+      return LockScreen(onUnlocked: () => setState(() => unlocked = true));
+    }
+    return const HomeShell();
   }
 }
