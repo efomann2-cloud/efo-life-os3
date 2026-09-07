@@ -76,7 +76,6 @@ class AppProvider extends ChangeNotifier {
     setValue(key, list);
   }
 
-  /// Counts every completed checklist item ever recorded (schedule, study, GK, bible).
   int lifetimeCompletedCount() {
     int count = 0;
     const prefixes = ['schedule_', 'daystudy_', 'nightstudy_', 'gk_', 'bible_'];
@@ -86,9 +85,5 @@ class AppProvider extends ChangeNotifier {
       }
     });
     return count;
-  }
-}
-  void setMapList(String key, List<Map<String, dynamic>> list) {
-    setValue(key, list);
   }
 }
