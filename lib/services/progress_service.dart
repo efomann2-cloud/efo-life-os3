@@ -24,7 +24,7 @@ TodayStats computeStatsForDate(AppProvider app, DateTime date) {
   final dKey = dateKeyFor(date);
 
   final scheduleDone = app.getBoolList('schedule_$dKey', blocks.length).where((e) => e).length;
-  final dsDone = app.getBoolList('daystudy_$dKey', kDayStudyTasks.length).where((e) => e).length;
+  final dsDone = app.getBoolList('daystudy_$dKey', kDayStudyLength).where((e) => e).length;
   final nsDone = app.getBoolList('nightstudy_$dKey', kNightStudyTasks.length).where((e) => e).length;
 
   final dIdx = date.weekday % 7;
@@ -33,7 +33,7 @@ TodayStats computeStatsForDate(AppProvider app, DateTime date) {
   final bibleDone = app.getBoolList('bible_$weekKey', 7)[dIdx] ? 1 : 0;
 
   final done = scheduleDone + dsDone + nsDone + gkDone + bibleDone;
-  final total = blocks.length + kDayStudyTasks.length + kNightStudyTasks.length + 1 + 1;
+  final total = blocks.length + kDayStudyLength + kNightStudyTasks.length + 1 + 1;
 
   return TodayStats(done, total);
 }
@@ -57,13 +57,12 @@ int weeklyCount(AppProvider app, String prefix, DateTime now) {
   return app.getBoolList('${prefix}_$weekKey', 7).where((e) => e).length;
 }
 
-/// Attempts to check in for today. Returns true if a new check-in happened.
 bool performCheckIn(AppProvider app) {
   final now = DateTime.now();
   final todayKey = dateKeyFor(now);
   final lastDate = app.getString('streak_last_date');
 
-  if (lastDate == todayKey) return false; // already checked in today
+  if (lastDate == todayKey) return false;
 
   final yesterday = dateKeyFor(now.subtract(const Duration(days: 1)));
   final dayBefore = dateKeyFor(now.subtract(const Duration(days: 2)));
@@ -92,6 +91,7 @@ bool isCheckedInToday(AppProvider app) {
 }
 
 int currentStreak(AppProvider app) => app.getInt('streak_count', fallback: 0);
+
 int daysSinceStart(AppProvider app) {
   final startStr = app.getString('journey_start_date');
   if (startStr.isEmpty) return 1;
