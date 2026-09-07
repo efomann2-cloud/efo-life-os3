@@ -15,7 +15,7 @@ DateTime stageStartDate(AppProvider app, int stageIndex) {
 }
 
 double _dayStudyFraction(AppProvider app, DateTime d) {
-  final dsDone = app.getBoolList('daystudy_${dateKeyFor(d)}', kDayStudyTasks.length).where((e) => e).length;
+  final dsDone = app.getBoolList('daystudy_${dateKeyFor(d)}', kDayStudyLength).where((e) => e).length;
   final nsDone = app.getBoolList('nightstudy_${dateKeyFor(d)}', kNightStudyTasks.length).where((e) => e).length;
   final total = kDayStudyTasks.length + kNightStudyTasks.length;
   return total == 0 ? 0 : (dsDone + nsDone) / total;
