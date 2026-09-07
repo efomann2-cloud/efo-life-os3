@@ -7,7 +7,8 @@ import '../../data/study_data.dart';
 class EndOfDayReview extends StatefulWidget {
   final String dateKey;
   final String dateLabel;
-  const EndOfDayReview({super.key, required this.dateKey, required this.dateLabel});
+  final int weekday;
+  const EndOfDayReview({super.key, required this.dateKey, required this.dateLabel, required this.weekday});
 
   @override
   State<EndOfDayReview> createState() => _EndOfDayReviewState();
@@ -19,7 +20,8 @@ class _EndOfDayReviewState extends State<EndOfDayReview> {
     final app = context.watch<AppProvider>();
     final dsKey = 'daystudy_${widget.dateKey}';
     final nsKey = 'nightstudy_${widget.dateKey}';
-    final dsDone = app.getBoolList(dsKey, kDayStudyTasks.length);
+    final dayTasks = dayStudyTasksFor(widget.weekday);
+    final dsDone = app.getBoolList(dsKey, dayTasks.length);
     final nsDone = app.getBoolList(nsKey, kNightStudyTasks.length);
     final excusedKey = 'excused_${widget.dateKey}';
     final isExcused = app.getBool(excusedKey);
@@ -61,7 +63,7 @@ class _EndOfDayReviewState extends State<EndOfDayReview> {
           else ...[
             const Text('☀ DAY STUDY', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
             const SizedBox(height: 8),
-            ...List.generate(kDayStudyTasks.length, (i) => _reviewRow(app, dsKey, kDayStudyTasks.length, i, dsDone[i], kDayStudyTasks[i])),
+            ...List.generate(dayTasks.length, (i) => _reviewRow(app, dsKey, dayTasks.length, i, dsDone[i], dayTasks[i])),
             const SizedBox(height: 16),
             const Text('🌙 NIGHT STUDY', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
             const SizedBox(height: 8),
