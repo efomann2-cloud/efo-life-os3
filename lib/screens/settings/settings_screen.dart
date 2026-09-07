@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/app_provider.dart';
+import '../../services/storage_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -69,7 +71,48 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 24),
-          const Text('Language · Backup · Focus Mode · App Lock · Notifications — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
+          const Text('💾 BACKUP', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.inkCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.inkLine),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Export Your Data', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.parchment)),
+                const SizedBox(height: 4),
+                const Text('Copies all your progress as text. Paste it somewhere safe (Notes, Telegram Saved Messages) so you never lose it if you change phones.', style: TextStyle(fontSize: 11.5, color: AppColors.dim, height: 1.4)),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () async {
+                    final storage = StorageService();
+                    final data = await storage.loadState();
+                    final jsonStr = data.toString();
+                    await Clipboard.setData(ClipboardData(text: jsonStr));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Backup copied to clipboard ✓'), backgroundColor: AppColors.inkCard),
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.gold.withOpacity(0.4))),
+                    alignment: Alignment.center,
+                    child: const Text('📋 Copy Backup to Clipboard', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.goldLight)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+          const Text('Focus Mode · App Lock · Notifications — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
         ],
       ),
     );
