@@ -7,6 +7,7 @@ import '../../data/schedule_data.dart';
 import '../../data/study_data.dart';
 import '../../data/gk_data.dart';
 import '../../data/bible_data.dart';
+import '../../data/build_plan_data.dart';
 import 'end_of_day_review.dart';
 
 String _dateKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
@@ -15,6 +16,12 @@ String _weekStartKey(DateTime now) {
   final diff = now.weekday % 7;
   final sunday = now.subtract(Duration(days: diff));
   return '${sunday.year}-${sunday.month}-${sunday.day}';
+}
+
+DateTime _weekSunday(DateTime now) {
+  final diff = now.weekday % 7;
+  final d = now.subtract(Duration(days: diff));
+  return DateTime(d.year, d.month, d.day);
 }
 
 bool _blockContainsNow(ScheduleBlock b, double nowFloat) {
@@ -43,6 +50,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   bool _shiftInit = false;
   late int selectedGkDay;
   late int selectedBibleDay;
+  late int selectedBuildDay;
   final TextEditingController _reflectionController = TextEditingController();
   bool _reflectionInit = false;
   final TextEditingController _summerController = TextEditingController();
@@ -54,6 +62,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final today = DateTime.now().weekday % 7;
     selectedGkDay = today;
     selectedBibleDay = today;
+    selectedBuildDay = today;
     _ticker = Timer.periodic(const Duration(seconds: 30), (_) => setState(() {}));
   }
 
@@ -110,6 +119,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final summerGoals = app.getMapList('summer_plan');
     final captures = app.getMapList('quick_capture');
 
+    final dayTasks = dayStudyTasksFor(now.weekday);
+
+    final buildDate = _weekSunday(now).add(Duration(days: selectedBuildDay));
+    final buildDateKey = _dateKey(buildDate);
+    final buildDay = kBuildPlan[selectedBuildDay];
+    final buildStateKey = 'buildplan_$buildDateKey';
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -119,7 +135,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
-              builder: (_) => EndOfDayReview(dateKey: yesterdayKey, dateLabel: _weekdayName(yesterday.weekday)),
+              builder: (_) => EndOfDayReview(dateKey: yesterdayKey, dateLabel: _weekdayName(yesterday.weekday), weekday: yesterday.weekday),
             ),
             child: Container(
               margin: const EdgeInsets.only(bottom: 14),
@@ -234,12 +250,25 @@ class _GoalsScreenState extends State<GoalsScreen> {
         const SizedBox(height: 24),
         const Text('☀ DAY STUDY', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
         const SizedBox(height: 8),
-        ..._buildChecklist(context, app, 'daystudy_${_dateKey(now)}', kDayStudyTasks, '☀'),
+        ..._buildChecklist(context, app, 'daystudy_${_dateKey(now)}', dayTasks, '☀'),
 
         const SizedBox(height: 20),
         const Text('🌙 NIGHT STUDY', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
         const SizedBox(height: 8),
         ..._buildChecklist(context, app, 'nightstudy_${_dateKey(now)}', kNightStudyTasks, '🌙'),
+
+        const SizedBox(height: 24),
+        const Text('💻 FLUTTER & PYTHON BUILD PLAN', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+        const SizedBox(height: 10),
+        _buildDayStrip(selectedBuildDay, todayIndex, (i) => setState(() => selectedBuildDay = i)),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+          child: Text('${buildDay.track} — ${buildDay.mode}', style: const TextStyle(fontSize: 11, color: AppColors.gold, fontWeight: FontWeight.w600)),
+        ),
+        ..._buildChecklist(context, app, buildStateKey, buildDay.steps, '💻'),
 
         const SizedBox(height: 24),
         const Text('💡 GENERAL KNOWLEDGE — THIS WEEK', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
