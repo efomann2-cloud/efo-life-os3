@@ -12,6 +12,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
     final missionStartStr = app.getString('mission_start_date', fallback: app.getString('journey_start_date'));
+    final focusMode = app.getBool('focus_mode_enabled', fallback: true);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -71,6 +72,38 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 24),
+          const Text('🌙 FOCUS', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.inkCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.inkLine),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Focus Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.parchment)),
+                      const SizedBox(height: 4),
+                      const Text('Silences reminders during your 4:00–8:00 (ET) Night Study block so you can stay focused.', style: TextStyle(fontSize: 11.5, color: AppColors.dim, height: 1.4)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Switch(
+                  value: focusMode,
+                  activeColor: AppColors.gold,
+                  onChanged: (v) => context.read<AppProvider>().setValue('focus_mode_enabled', v),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
           const Text('💾 BACKUP', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
           const SizedBox(height: 10),
           Container(
@@ -112,7 +145,7 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 24),
-          const Text('Focus Mode · App Lock · Notifications — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
+          const Text('App Lock · Notifications — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
         ],
       ),
     );
