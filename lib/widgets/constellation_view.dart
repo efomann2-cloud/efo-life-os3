@@ -1,10 +1,11 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../data/pillar_data.dart';
 
 class ConstellationView extends StatelessWidget {
-  final List<List<bool>> unlockedMap; // [pillarIndex][stageIndex]
-  final List<List<bool>> reachedMap;  // time-reached but maybe not unlocked
+  final List<List<bool>> unlockedMap;
+  final List<List<bool>> reachedMap;
   const ConstellationView({super.key, required this.unlockedMap, required this.reachedMap});
 
   @override
@@ -49,23 +50,20 @@ class _ConstellationPainter extends CustomPainter {
     final stageCount = unlockedMap.isNotEmpty ? unlockedMap[0].length : 3;
     final colWidth = size.width / pillarCount;
 
-    // background faint dots
     final bgDotPaint = Paint()..color = Colors.white.withOpacity(0.04);
     for (int i = 0; i < 26; i++) {
       final dx = (i * 53) % size.width.toInt();
-      final dy = (i * 31) % size.height.toInt();
+      final dy = (i * 31) % (size.height.toInt() - 20);
       canvas.drawCircle(Offset(dx.toDouble(), dy.toDouble()), 1.2, bgDotPaint);
     }
 
     final List<List<Offset>> positions = [];
-
     for (int p = 0; p < pillarCount; p++) {
       final colCenterX = colWidth * (p + 0.5);
       final List<Offset> colPositions = [];
       for (int s = 0; s < stageCount; s++) {
-        // stage 0 at bottom, last stage at top
-        final t = s / (stageCount - 1);
-        final y = size.height * (0.88 - t * 0.72);
+        final t = stageCount > 1 ? s / (stageCount - 1) : 0.0;
+        final y = size.height * (0.82 - t * 0.62);
         final wiggle = (s.isEven ? -1 : 1) * colWidth * 0.12;
         final x = colCenterX + wiggle;
         colPositions.add(Offset(x, y));
@@ -73,7 +71,6 @@ class _ConstellationPainter extends CustomPainter {
       positions.add(colPositions);
     }
 
-    // draw connecting lines within each pillar
     for (int p = 0; p < pillarCount; p++) {
       final color = colors[p % colors.length];
       for (int s = 0; s < stageCount - 1; s++) {
@@ -87,7 +84,6 @@ class _ConstellationPainter extends CustomPainter {
       }
     }
 
-    // draw stars
     for (int p = 0; p < pillarCount; p++) {
       final color = colors[p % colors.length];
       for (int s = 0; s < stageCount; s++) {
@@ -100,29 +96,25 @@ class _ConstellationPainter extends CustomPainter {
             ..color = color.withOpacity(0.35)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
           canvas.drawCircle(pos, 10, glowPaint);
-          final starPaint = Paint()..color = color;
-          _drawStar(canvas, pos, 6, starPaint);
+          _drawStar(canvas, pos, 6, Paint()..color = color);
         } else if (reached) {
-          final ringPaint = Paint()
+          canvas.drawCircle(pos, 5, Paint()
             ..color = AppColors.gold.withOpacity(0.6)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.4;
-          canvas.drawCircle(pos, 5, ringPaint);
+            ..strokeWidth = 1.4);
         } else {
-          final dimPaint = Paint()
+          canvas.drawCircle(pos, 4, Paint()
             ..color = Colors.white.withOpacity(0.15)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.2;
-          canvas.drawCircle(pos, 4, dimPaint);
+            ..strokeWidth = 1.2);
         }
       }
 
-      // pillar icon label at bottom
       final textPainter = TextPainter(
         text: TextSpan(text: labels[p], style: const TextStyle(fontSize: 14)),
         textDirection: TextDirection.ltr,
       )..layout();
-      final labelPos = Offset(positions[p][0].dx - textPainter.width / 2, size.height * 0.94);
+      final labelPos = Offset(positions[p][0].dx - textPainter.width / 2, size.height * 0.90);
       textPainter.paint(canvas, labelPos);
     }
   }
@@ -132,9 +124,9 @@ class _ConstellationPainter extends CustomPainter {
     final path = Path();
     for (int i = 0; i < points * 2; i++) {
       final r = i.isEven ? radius : radius * 0.45;
-      final angle = (i * 3.14159 / points) - 3.14159 / 2;
-      final x = center.dx + r * _cos(angle);
-      final y = center.dy + r * _sin(angle);
+      final angle = (i * math.pi / points) - math.pi / 2;
+      final x = center.dx + r * math.cos(angle);
+      final y = center.dy + r * math.sin(angle);
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -145,19 +137,6 @@ class _ConstellationPainter extends CustomPainter {
     canvas.drawPath(path, paint);
   }
 
-  double _cos(double a) => (a).isNaN ? 0 : _mathCos(a);
-  double _sin(double a) => (a).isNaN ? 0 : _mathSin(a);
-  double _mathCos(double x) {
-    // simple wrapper to avoid importing dart:math separately in comments
-    return _dartMathCos(x);
-  }
-  double _mathSin(double x) => _dartMathSin(x);
-
   @override
-  bool shouldRepaint(covariant _ConstellationPainter oldDelegate) {
-    return true;
-  }
+  bool shouldRepaint(covariant _ConstellationPainter oldDelegate) => true;
 }
-
-double _dartMathCos(double x) => _cosImpl(x);
-double _dartMathSin(double x) => _sinImpl(x);
