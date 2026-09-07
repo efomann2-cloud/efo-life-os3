@@ -5,14 +5,19 @@ import '../../theme/app_theme.dart';
 import '../../providers/app_provider.dart';
 import '../../services/storage_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
 
+class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
     final missionStartStr = app.getString('mission_start_date', fallback: app.getString('journey_start_date'));
     final focusMode = app.getBool('focus_mode_enabled', fallback: true);
+    final hasPin = app.getString('app_pin').length == 4;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -104,6 +109,51 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 24),
+          const Text('🔒 PRIVACY', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.inkCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.inkLine),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(hasPin ? 'App Lock: On' : 'App Lock: Off', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.parchment)),
+                const SizedBox(height: 4),
+                const Text('Require a 4-digit PIN to open the app — keeps your Reflections and journal private.', style: TextStyle(fontSize: 11.5, color: AppColors.dim, height: 1.4)),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _showPinDialog(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                        decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.gold.withOpacity(0.4))),
+                        alignment: Alignment.center,
+                        child: Text(hasPin ? 'Change PIN' : 'Set PIN', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.goldLight)),
+                      ),
+                    ),
+                  ),
+                  if (hasPin) ...[
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: () => context.read<AppProvider>().setValue('app_pin', ''),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.inkLine)),
+                        child: const Text('Remove', style: TextStyle(fontSize: 13, color: AppColors.dim)),
+                      ),
+                    ),
+                  ],
+                ]),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
           const Text('💾 BACKUP', style: TextStyle(color: AppColors.gold, fontSize: 11, letterSpacing: 1.2)),
           const SizedBox(height: 10),
           Container(
@@ -145,8 +195,59 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 24),
-          const Text('App Lock · Notifications — ቀጣይ sub-steps ላይ ይጨመራሉ', style: TextStyle(fontSize: 11, color: AppColors.dim)),
+          const Text('Notifications — ቀጣይ sub-step ላይ ይጨመራል', style: TextStyle(fontSize: 11, color: AppColors.dim)),
         ],
+      ),
+    );
+  }
+
+  void _showPinDialog(BuildContext context) {
+    String pin1 = '';
+    String pin2 = '';
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.inkCard,
+          title: const Text('Set a 4-digit PIN', style: TextStyle(color: AppColors.parchment, fontSize: 15)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                obscureText: true,
+                style: const TextStyle(color: AppColors.parchment),
+                decoration: const InputDecoration(labelText: 'New PIN', labelStyle: TextStyle(color: AppColors.dim), counterText: ''),
+                onChanged: (v) => pin1 = v,
+              ),
+              TextField(
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                obscureText: true,
+                style: const TextStyle(color: AppColors.parchment),
+                decoration: const InputDecoration(labelText: 'Confirm PIN', labelStyle: TextStyle(color: AppColors.dim), counterText: ''),
+                onChanged: (v) => pin2 = v,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.dim))),
+            TextButton(
+              onPressed: () {
+                if (pin1.length == 4 && pin1 == pin2) {
+                  context.read<AppProvider>().setValue('app_pin', pin1);
+                  Navigator.pop(ctx);
+                } else {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('PINs must match and be 4 digits'), backgroundColor: Colors.redAccent),
+                  );
+                }
+              },
+              child: const Text('Save', style: TextStyle(color: AppColors.gold)),
+            ),
+          ],
+        ),
       ),
     );
   }
