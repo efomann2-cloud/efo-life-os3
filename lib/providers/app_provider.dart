@@ -75,4 +75,20 @@ class AppProvider extends ChangeNotifier {
   void setMapList(String key, List<Map<String, dynamic>> list) {
     setValue(key, list);
   }
+
+  /// Counts every completed checklist item ever recorded (schedule, study, GK, bible).
+  int lifetimeCompletedCount() {
+    int count = 0;
+    const prefixes = ['schedule_', 'daystudy_', 'nightstudy_', 'gk_', 'bible_'];
+    _state.forEach((k, v) {
+      if (v is List && prefixes.any((p) => k.startsWith(p))) {
+        count += v.where((e) => e == true).length;
+      }
+    });
+    return count;
+  }
+}
+  void setMapList(String key, List<Map<String, dynamic>> list) {
+    setValue(key, list);
+  }
 }
